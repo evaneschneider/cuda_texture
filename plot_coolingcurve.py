@@ -1,12 +1,12 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-T = np.linspace(1.0, 5.0, 101)
+T = np.linspace(1.0, 9.0, 1000)
 
 x_i = []
 y_i = []
 z_i = []
-f = open('cloudy_coolingcurve_n0_HM05.txt', 'r')
+f = open('cloudy_coolingcurve_n3_HM05.txt', 'r')
 f.readline()
 lines = f.readlines()
 f.close()
@@ -29,7 +29,7 @@ plt.ylabel("log($\Lambda$ / n$_{h}$$^{2}$) [erg cm$^{-3}$ s$^{-1}$]");
 
 x_i = []
 y_i = []
-f = open('cuda_coolingcurve_n0.txt', 'r')
+f = open('cuda_coolingcurve_n3.txt', 'r')
 lines = f.readlines()
 f.close()
 for line in lines:
@@ -45,4 +45,4 @@ line4, = ax1.plot(T, y, color="green")
 
 plt.legend(handles=[line1, line3], loc=2)
 plt.show()
-fig.savefig('cuda_coolingcurve_n0.png')
+fig.savefig('cuda_coolingcurve_n3.png')

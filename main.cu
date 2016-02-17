@@ -12,12 +12,12 @@ __global__ void transformKernel(float* output, cudaTextureObject_t coolTexObj, c
   int xid = blockIdx.x * blockDim.x + threadIdx.x;
   int yid = blockIdx.y * blockDim.y + threadIdx.y;
   float t = float(xid)/nx;
-  float n = (log_n + 6.0)/12.0 - 0.5/121;
+  float n = (log_n + 6.0)/12.1;
   if (xid < nx && yid < ny) {
-    //printf("%3d %d %f %f\n", xid, yid, n, t);
     // Read from texture and write to global memory
     output[yid*nx + xid] = tex2D<float>(coolTexObj, t, n);
     output[nx*ny + yid*nx + xid] = tex2D<float>(heatTexObj, t, n);
+    //printf("%3d %d %f %f %f %f\n", xid, yid, n, t, output[yid*nx + xid], output[nx*ny + yid*nx + xid]);
   }
 }
 
@@ -32,11 +32,11 @@ int main()
   float *cooling_table;
   float *heating_table;
   float *h_output;
-  const int nx = 41;
+  const int nx = 81;
   const int ny = 121;
-  int nx_out = 1000000;
+  int nx_out = 1000;
   int ny_out = 1; 
-  float log_n = 0.0;
+  float log_n = -3.0;
   double start_t, stop_t;
 
 
@@ -104,7 +104,7 @@ int main()
   start_t = get_time();  
   transformKernel<<<dimGrid, dimBlock>>>(output, coolTexObj, heatTexObj, nx_out, ny_out, log_n);
   stop_t = get_time();
-  printf("%f ms\n", (stop_t-start_t)*1000);  
+  //printf("%f ms\n", (stop_t-start_t)*1000);  
   cudaDeviceSynchronize();
 
   // Copy the results back to the host
@@ -113,9 +113,8 @@ int main()
 
   for (int j=0; j<ny_out; j++) {
     for (int i=0; i<nx_out; i++) {
-      //printf("%6.3f %6.3f\n", h_output[j*nx_out + i], h_output[nx_out*ny_out + j*nx_out + i]);
+      printf("%6.3f %6.3f\n", h_output[j*nx_out + i], h_output[nx_out*ny_out + j*nx_out + i]);
     }
-    //printf("\n");
   }  
 
 
@@ -146,64 +145,21 @@ void Load_Cooling_Tables(float* cooling_table, float* heating_table)
 
   int i;
   int nx = 121;
-  int ny = 41;
+  int ny = 81;
 
   FILE *infile;
   char buffer[0x1000];
   char * pch;
 
-  // Allocate arrays for high temperature data
-  n_arr = (double *) malloc(61*sizeof(double));
-  T_arr = (double *) malloc(61*sizeof(double));
-  L_arr = (double *) malloc(61*sizeof(double));
-  H_arr = (double *) malloc(61*sizeof(double));
-
-  // Read in high T cooling curve (single density)
-  i=0;
-  infile = fopen("./cloudy_coolingcurve_highT.txt", "r");
-  if (infile == NULL) {
-    printf("Unable to open Cloudy file.\n");
-    exit(1);
-  }
-  while (fgets(buffer, sizeof(buffer), infile) != NULL)
-  {
-    if (buffer[0] == '#') {
-      continue;
-    }
-    else {
-      pch = strtok(buffer, "\t");
-      n_arr[i] = atof(pch);
-      while (pch != NULL)
-      {
-        pch = strtok(NULL, "\t");
-        if (pch != NULL)
-          T_arr[i] = atof(pch);
-        pch = strtok(NULL, "\t");
-        if (pch != NULL)
-          L_arr[i] = atof(pch);
-        pch = strtok(NULL, "\t");
-        if (pch != NULL)
-          H_arr[i] = atof(pch);
-      }
-      i++;
-    }
-  }
-  fclose(infile);
-
-  free(n_arr);
-  free(T_arr);
-  free(L_arr);
-  free(H_arr);
-
-  // allocate arrays for low temperature data
+  // allocate arrays for temperature data
   n_arr = (double *) malloc(nx*ny*sizeof(double));
   T_arr = (double *) malloc(nx*ny*sizeof(double));
   L_arr = (double *) malloc(nx*ny*sizeof(double));
   H_arr = (double *) malloc(nx*ny*sizeof(double));
 
-  // Read in low T cooling curve (function of density and temperature)
+  // Read in cloudy cooling/heating curve (function of density and temperature)
   i=0;
-  infile = fopen("./cloudy_coolingcurve_lowT.txt", "r");
+  infile = fopen("./cloudy_coolingcurve.txt", "r");
   if (infile == NULL) {
     printf("Unable to open Cloudy file.\n");
     exit(1);
